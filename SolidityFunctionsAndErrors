@@ -1,24 +1,59 @@
-
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.0;
 
-contract FunctionsAndErrors {
-    uint public evenCount;
-
-    function requireEvenNumber(uint number) external {
-        require(number % 2 == 0, "The number you inputted is ODD");
-        ++evenCount;
+contract SchoolGradingSystem {
+    address public owner;
+    
+    struct Student {
+        uint256 grade;
+        bool exists;
     }
 
-    function assertEvenNumber(uint number) external {
-        assert(number % 2 == 0);
-        ++evenCount;
+    mapping(address => Student) private students;
+
+    event GradeAdded(address student, uint256 grade);
+    event GradeUpdated(address student, uint256 newGrade);
+
+    error NotOwner();
+    error StudentNotFound(address student);
+    error GradeOutOfRange(uint256 grade);
+
+    constructor() {
+        owner = msg.sender;
     }
 
-    function revertEvenNumber(uint number) external {
-        if (number % 2 != 0) {
-            revert("The number you inputted is ODD");
+    modifier onlyOwner() {
+        if (msg.sender != owner) {
+            revert NotOwner();
         }
-        ++evenCount;
+        _;
+    }
+
+    function addGrade(address student, uint256 grade) public onlyOwner {
+        if (grade > 100) {
+            revert GradeOutOfRange(grade);
+        }
+
+        students[student] = Student(grade, true);
+        emit GradeAdded(student, grade);
+    }
+
+    function updateGrade(address student, uint256 newGrade) public onlyOwner {
+        if (!students[student].exists) {
+            revert StudentNotFound(student);
+        }
+        if (newGrade > 100) {
+            revert GradeOutOfRange(newGrade);
+        }
+
+        students[student].grade = newGrade;
+        emit GradeUpdated(student, newGrade);
+    }
+
+    function getGrade(address student) public view returns (uint256) {
+        if (!students[student].exists) {
+            revert StudentNotFound(student);
+        }
+        return students[student].grade;
     }
 }
